@@ -56,6 +56,7 @@ class EngTagger
   end
   
   # Regexps to match XML-style part-of-speech tags
+  FW    = get_ext('fw')
   NUM   = get_ext('cd')
   GER   = get_ext('vbg')
   ADJ   = get_ext('jj[rs]*')
@@ -68,7 +69,6 @@ class EngTagger
   SEN   = get_ext('pp')
   WORD  = get_ext('\w+')
   VB    = get_ext('vb')
-  VBG   = get_ext('vbg')
   VBD   = get_ext('vbd')
   PART  = get_ext('vbn')   
   VBP   = get_ext('vbp')
@@ -188,7 +188,7 @@ class EngTagger
   # See above for details.
   def initialize(params = {})
     @conf = Hash.new
-    @conf[:unknown_word_tag] = ''
+    @conf[:unknown_word_tag] = 'fw'
     @conf[:stem] = false
     @conf[:weight_noun_phrases] = false
     @conf[:longest_noun_phrase] = 5
@@ -329,6 +329,21 @@ class EngTagger
     return nil unless valid_text(tagged)
     NN
     trimmed = tagged.scan(NN).map do |n|
+      strip_tags(n)
+    end
+    ret = Hash.new(0)
+    trimmed.each do |n|
+      n = stem(n)
+      next unless n.length < 100  # sanity check on word length
+      ret[n] += 1 unless n =~ /\A\s*\z/
+    end
+    return ret
+  end
+
+  def get_unknown(tagged)
+    return nil unless valid_text(tagged)
+    FW
+    trimmed = tagged.scan(FW).map do |n|
       strip_tags(n)
     end
     ret = Hash.new(0)
@@ -553,8 +568,8 @@ class EngTagger
 
   def get_gerund_verbs(tagged)
     return nil unless valid_text(tagged)
-    VBG
-    trimmed = tagged.scan(VB).map do |n|
+    GER
+    trimmed = tagged.scan(GER).map do |n|
       strip_tags(n)
     end
     ret = Hash.new(0)
